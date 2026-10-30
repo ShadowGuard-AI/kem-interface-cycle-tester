@@ -1,9 +1,9 @@
 import argparse
 import logging
 import os
+import sys
 import time
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import kem
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -17,25 +17,33 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 try:
     from cryptography.hazmat.primitives.asymmetric import x25519
 except ImportError:
-    logging.error("x25519 not available, ensure your cryptography library is up-to-date (>=41.0.0 for OQS KEM support).")
+    logging.error("x25519 not available, ensure your cryptography library is up-to-date (>=41.0.0).")
     raise
 
 # Dummy KEM implementation (replace with actual post-quantum KEMs when available)
+# This placeholder is NOT a post-quantum KEM. It implements the KEM interface
+# (keypair, encapsulate, decapsulate) using an ephemeral X25519 Diffie-Hellman
+# exchange, so encapsulation and decapsulation derive the same shared secret:
+# encapsulate() runs DH against the recipient public key with a fresh ephemeral
+# key and returns the ephemeral public key as the ciphertext; decapsulate()
+# runs DH with the recipient private key and that ephemeral public key.
 class DummyKEM:
     def __init__(self):
         self.private_key = x25519.X25519PrivateKey.generate()
         self.public_key = self.private_key.public_key()
 
     def encapsulate(self):
-        # Generate a random shared secret and ciphertext
-        shared_secret = os.urandom(32) # 32 bytes is a common key size
-        ciphertext = os.urandom(64) # Simulate an encapsulated ciphertext
+        ephemeral_private = x25519.X25519PrivateKey.generate()
+        shared_secret = ephemeral_private.exchange(self.public_key)
+        ciphertext = ephemeral_private.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw
+        )
         return ciphertext, shared_secret
 
     def decapsulate(self, ciphertext):
-        # Generate a random shared secret (since we don't have a real KEM)
-        shared_secret = os.urandom(32)
-        return shared_secret
+        ephemeral_public = x25519.X25519PublicKey.from_public_bytes(ciphertext)
+        return self.private_key.exchange(ephemeral_public)
 # --- End KEM Implementation ---
 
 def setup_argparse():
@@ -47,7 +55,7 @@ def setup_argparse():
     parser.add_argument("--test_encryption", action="store_true", help="Test encryption/decryption with KEM-derived key.")
     parser.add_argument("--message_size", type=int, default=1024, help="Size of the message to encrypt (bytes), used with --test_encryption.")
     parser.add_argument("--kem_type", type=str, default="DummyKEM", help="Type of KEM to use (e.g., DummyKEM). Replace with actual KEM names when available.")
-    parser.add_argument("--cipher", type=str, default="AES256", help="Cipher algorithm for encryption test.")
+    parser.add_argument("--cipher", type=str, default="AES256", help="Cipher algorithm for encryption test. Only AES256 is supported.")
     parser.add_argument("--public_key_file", type=str, help="File containing the recipient's public key (for offline testing).")
     parser.add_argument("--private_key_file", type=str, help="File containing the recipient's private key (for offline testing).")
     parser.add_argument("--generate_keys", action="store_true", help="Generate a public/private key pair for the specified KEM.")
@@ -58,6 +66,9 @@ def test_kem_performance(iterations, kem_type):
     """
     Tests the performance of a given KEM through multiple encapsulation/decapsulation cycles.
     """
+    if iterations <= 0:
+        logging.error("Iterations must be a positive integer.")
+        return False
     try:
         if kem_type == "DummyKEM":
             kem_instance = DummyKEM()  # Instantiate the dummy KEM
@@ -141,6 +152,9 @@ def test_encryption_decryption(kem_type, message_size, cipher_type):
     """
     Tests KEM integration with encryption/decryption using a derived key.
     """
+    if cipher_type != "AES256":
+        logging.error(f"Unsupported cipher: {cipher_type}. Only AES256 is supported.")
+        return False
     try:
         if kem_type == "DummyKEM":
             kem_instance = DummyKEM()
@@ -212,32 +226,41 @@ def generate_key_pair(kem_type, public_key_file, private_key_file):
         logging.info(f"Key pair generated successfully.")
         logging.info(f"Public key saved to: {public_key_file}")
         logging.info(f"Private key saved to: {private_key_file}")
+        return True
 
     except Exception as e:
         logging.error(f"Error generating key pair: {e}")
+        return False
 
 
 def main():
     """
     Main function to execute the KEM tester.
+    Returns 0 on success and 1 if any requested test or operation failed.
     """
     args = setup_argparse()
+    ok = True
 
     if args.generate_keys:
         if not args.public_key_file or not args.private_key_file:
             logging.error("--public_key_file and --private_key_file must be specified with --generate_keys.")
-            return
-        generate_key_pair(args.kem_type, args.public_key_file, args.private_key_file)
-        return
-
+            return 1
+        return 0 if generate_key_pair(args.kem_type, args.public_key_file, args.private_key_file) else 1
 
     if args.iterations > 0:
         if not test_kem_performance(args.iterations, args.kem_type):
             logging.error("KEM performance test failed.")
+            ok = False
+    elif not args.test_encryption:
+        logging.error("--iterations must be a positive integer.")
+        ok = False
 
     if args.test_encryption:
         if not test_encryption_decryption(args.kem_type, args.message_size, args.cipher):
             logging.error("Encryption/Decryption test failed.")
+            ok = False
+
+    return 0 if ok else 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
