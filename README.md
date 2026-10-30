@@ -27,7 +27,7 @@ python3 main.py [--iterations N] [--test_encryption] [--message_size BYTES]
                 [--generate_keys --public_key_file PUB --private_key_file PRIV]
 ```
 
-The exit code is 0 when every requested test passes and 1 when any requested test or operation fails.
+The exit code is 0 when every requested test passes and 1 when any requested test or operation fails. An unsupported `--kem_type` or `--cipher` value is refused up front in every mode, and `--message_size` must be at least 1 with `--test_encryption`.
 
 ### Parameters
 

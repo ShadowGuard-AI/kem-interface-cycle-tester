@@ -241,6 +241,21 @@ def main():
     args = setup_argparse()
     ok = True
 
+    # Validate the named choices before any mode runs. The cipher was
+    # only checked inside the encryption test, so "--cipher BAD" with
+    # no --test_encryption exited 0 having tested nothing with it, and
+    # a non-positive message size only failed by accident inside
+    # os.urandom rather than in words that name the argument.
+    if args.kem_type != "DummyKEM":
+        logging.error(f"Unsupported KEM type: {args.kem_type}. Only DummyKEM is implemented.")
+        return 1
+    if args.cipher != "AES256":
+        logging.error(f"Unsupported cipher: {args.cipher}. Only AES256 is supported.")
+        return 1
+    if args.test_encryption and args.message_size < 1:
+        logging.error("--message_size must be at least 1 when --test_encryption is given.")
+        return 1
+
     if args.generate_keys:
         if not args.public_key_file or not args.private_key_file:
             logging.error("--public_key_file and --private_key_file must be specified with --generate_keys.")
