@@ -1,3 +1,5 @@
+![Banner](banner.png)
+
 # crypto-post-quantum-kem-tester
 
 A command line harness that exercises a Key Encapsulation Mechanism (KEM) interface: repeated encapsulate and decapsulate cycles with timing, an optional AES-256-CBC encryption round trip using a key derived from the KEM shared secret via HKDF-SHA256, and X25519 key pair generation to PEM files.
