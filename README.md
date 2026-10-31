@@ -77,3 +77,9 @@ python3 main.py --generate_keys --public_key_file pub.pem --private_key_file pri
 ## License
 
 Copyright (c) ShadowGuardAI
+
+## Diagrams and maps
+
+I drew the harness out in [kem-interface-cycle-tester-Visuals](kem-interface-cycle-tester-Visuals/): an architecture diagram, a sequence diagram of one cycle, a flowchart of a run, and a product map, with the written product map, statistics with citations, and the roadmap in [VISUAL.md](kem-interface-cycle-tester-Visuals/VISUAL.md). Every sheet also ships as a PNG photograph of the paper page beside its SVG.
+
+![KEM cycle tester architecture](kem-interface-cycle-tester-Visuals/architecture.svg)
