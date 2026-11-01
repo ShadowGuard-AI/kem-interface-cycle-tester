@@ -75,6 +75,10 @@ def test_kem_performance(iterations, kem_type):
         else:
             raise ValueError(f"Unsupported KEM type: {kem_type}")
 
+        # One instance is reused for every cycle and the clock starts
+        # after it exists, so the timing covers encapsulate and
+        # decapsulate only, not key generation. Each encapsulate still
+        # makes its own ephemeral key inside the call.
         start_time = time.time()
         for i in range(iterations):
             ciphertext, shared_secret_encap = kem_instance.encapsulate()
@@ -99,6 +103,10 @@ def derive_key(shared_secret, key_size=32):
     """
     Derives a key from a shared secret using HKDF.
     """
+    # No salt and a fixed info string, so this derivation is fully
+    # determined by the shared secret. That determinism is required
+    # here: the encrypt side and the decapsulate side derive separately
+    # and the keys only match because nothing random enters this step.
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=key_size,
@@ -241,6 +249,10 @@ def main():
     args = setup_argparse()
     ok = True
 
+    # The key file flags are only read in the --generate_keys branch
+    # below. Given without it, they are accepted and never opened: the
+    # tests always run against a fresh in-memory pair, so a run cannot
+    # test a key pair saved earlier, despite what the flags suggest.
     # Validate the named choices before any mode runs. The cipher was
     # only checked inside the encryption test, so "--cipher BAD" with
     # no --test_encryption exited 0 having tested nothing with it, and
