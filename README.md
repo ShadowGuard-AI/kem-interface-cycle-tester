@@ -14,7 +14,7 @@ Important limitation: the only KEM implemented is `DummyKEM`, a placeholder that
 ## Install
 
 ```bash
-git clone https://github.com/ShadowGuardAI/kem-interface-cycle-tester.git
+git clone https://github.com/ShadowGuard-AI/kem-interface-cycle-tester.git
 cd kem-interface-cycle-tester
 pip install -r requirements.txt
 ```
