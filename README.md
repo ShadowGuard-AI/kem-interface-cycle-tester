@@ -76,7 +76,19 @@ python3 main.py --generate_keys --public_key_file pub.pem --private_key_file pri
 
 ## License
 
-Copyright (c) ShadowGuardAI
+MIT. See [LICENSE](LICENSE).
+
+## Verified in this wave
+
+Live runs in Wave 12 are blocked by the missing `cryptography`
+package, and installs are forbidden in this wave, so no live run
+is claimed here. `python3 -m py_compile main.py` passes, and the
+parameter list above was checked against the argument parser in
+`main.py` (defaults, choices, and the up-front refusals for an
+unsupported `--kem_type` or `--cipher` and for a non-positive
+`--message_size` with `--test_encryption`). The license line was
+corrected to point at LICENSE, whose holder is Gavin Blacklock
+(Gavin K.).
 
 ## Diagrams and maps
 
